@@ -1,19 +1,26 @@
-import "./css/root.css";
+import "./style.css";
 
-import { useSelector } from "react-redux";
 import Provider from "../Redux/Provider";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+import { UserProvider } from "@auth0/nextjs-auth0/client";
+import { SessionProvider } from "next-auth/react";
+
 function MyApp({ Component, pageProps }) {
   return (
     <>
-      <Provider>
-        <Header />
-        <Component {...pageProps} />
-        <Footer />
-      </Provider>
+      <SessionProvider session={pageProps.session}>
+        <UserProvider>
+          <Provider>
+            <Header />
+            <Component {...pageProps} />
+            <Footer />
+          </Provider>
+        </UserProvider>
+      </SessionProvider>
+      ;
     </>
   );
 }

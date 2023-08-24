@@ -1,43 +1,58 @@
 "use client";
 
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-// const initialState = {
-//   cartItems: [],
-//   cartTotalQuantity: 0,
-//   cartTotalAmount: 0,
-// };
+const initialState = {
+  cartItems: [],
+  cartTotalQuantity: 0,
+  cartTotalAmount: 0,
+  selectedCurrency: "USD",
+  selectedSymbol: "$",
+};
 
 const cartSlice = createSlice({
   name: "Cart",
-  initialState: [],
+  initialState: initialState,
   reducers: {
     add(state, action) {
-      // const itemIndex = state.cartItems.findIndex(
-      //   (item) => item.id === action.payload.id
-      // );
-      // if (itemIndex >= 0) {
-      //   state.cartItems[itemIndex].cartQuantity += 1;
-      // } else {
-      //   const tempProduct = { ...action.payload, cartQuantity: 1 };
-      //   state.cartItems.push(tempProduct);
-      // }
-      return [...state, action.payload];
+      const itemIndex = state.cartItems.findIndex(
+        (item) => item.id === action.payload.id
+      );
+      if (itemIndex >= 0) {
+        state.cartItems[itemIndex].cartQuantity += 1;
+      } else {
+        const tempProduct = { ...action.payload, cartQuantity: 1 };
+        state.cartItems.push(tempProduct);
+      }
     },
-
+    setSelectedCurrency(state, action) {
+      state.selectedCurrency = action.payload;
+    },
+    setSelectedSymbol(state, action) {
+      state.selectedSymbol = action.payload;
+    },
     remove(state, action) {
-      return state.filter((item) => item.id !== action.payload);
+      const itemIdToRemove = action.payload;
+      state.cartItems = state.cartItems.filter(
+        (item) => item.id !== itemIdToRemove
+      );
     },
-
-    // decreaseCart(state, action) {
-    //   const itemIndex = state.cartItems.findIndex(
-    //     (cartItem) => cartItem.id === action.payload.id
-    //   );
-
-    //   if (state.cartItems[itemIndex].cartQuantity > 1) {
-    //     state.cartItems[itemIndex].cartQuantity -= 1;
-    //   }
-    // },
+    increaseQuantity(state, action) {
+      const itemIdToIncrease = action.payload;
+      state.cartItems = state.cartItems.map((item) =>
+        item.id === itemIdToIncrease
+          ? { ...item, cartQuantity: item.cartQuantity + 1 }
+          : item
+      );
+    },
+    decreaseQuantity(state, action) {
+      const itemIdToDecrease = action.payload;
+      state.cartItems = state.cartItems.map((item) =>
+        item.id === itemIdToDecrease && item.cartQuantity > 1
+          ? { ...item, cartQuantity: item.cartQuantity - 1 }
+          : item
+      );
+    },
 
     getTotal(state, action) {
       let { total, quantity } = state.cartItems.reduce(
@@ -61,5 +76,14 @@ const cartSlice = createSlice({
   },
 });
 
-export const { add, remove, decreaseCart, getTotal } = cartSlice.actions;
+export const {
+  add,
+  remove,
+  decreaseCart,
+  getTotal,
+  decreaseQuantity,
+  increaseQuantity,
+  setSelectedCurrency,
+  setSelectedSymbol,
+} = cartSlice.actions;
 export default cartSlice.reducer;

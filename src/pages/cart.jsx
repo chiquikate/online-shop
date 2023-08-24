@@ -1,36 +1,75 @@
 "use-client";
 
-import "./css/Cart.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 import Link from "next/link";
 
-import { remove } from "../Redux/Cartslice";
+import { remove, increaseQuantity, decreaseQuantity } from "../Redux/Cartslice";
 import { useDispatch, useSelector } from "react-redux";
 import { useState, useEffect } from "react";
 
+import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
+
 function Cart() {
+  const router = useRouter();
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart);
 
-  const [quantity, setQuantity] = useState(1);
+  const [rates, setRates] = useState({});
+  const { status } = useSession();
+  const { selectedCurrency, selectedSymbol } = useSelector(
+    (state) => state.cart
+  );
 
   const removeHandle = (id) => {
     dispatch(remove(id));
   };
 
-  const decreaseHandle = () => {
-    if (quantity > 1) {
-      setQuantity((prevCount) => prevCount - 1);
-    }
+  const decreaseHandle = (id) => {
+    dispatch(decreaseQuantity(id));
   };
 
-  const increaseHandle = () => {
-    if (quantity < 20) {
-      setQuantity((prevCount) => prevCount + 1);
+  const increaseHandle = (id) => {
+    dispatch(increaseQuantity(id));
+  };
+
+  const totalCartQuantity = cartItems?.cartItems?.reduce(
+    (total, currentItem) => total + currentItem.cartQuantity,
+    0
+  );
+  const placeOrderFunction = () => {
+    if (status == "unauthenticated") {
+      router.push("/signin");
+    } else {
+      router.push("/success");
     }
   };
+  const calculatePrice = (value) => {
+    return Math.floor(value * rates[selectedCurrency]);
+  };
+
+  const calculateTotal = () => {
+    let totalCartPrice = 0;
+    cartItems?.cartItems?.forEach((item) => {
+      const convertedPrice =
+        item.price * rates[selectedCurrency] * item.cartQuantity;
+      totalCartPrice += convertedPrice;
+    });
+    return Math.floor(totalCartPrice);
+  };
+
+  useEffect(() => {
+    async function dataList() {
+      const resRates = await fetch(
+        "http://data.fixer.io/api/latest?access_key=44aac3e52f083b8cc52fce3d655a073f"
+      );
+      const dataRates = await resRates.json();
+      setRates(dataRates?.rates);
+    }
+    dataList();
+  }, []);
 
   return (
     <>
@@ -38,10 +77,10 @@ function Cart() {
         <strong>Shopping Bag</strong>
       </div>
       <div className="cart-counter">
-        {cartItems.length} items in the shopping bag
+        {totalCartQuantity} items in the shopping bag
       </div>
       <div className="cart-container">
-        {cartItems.map((item, id) => (
+        {cartItems?.cartItems?.map((item, id) => (
           <div key={id} className="cart-card">
             <button
               className="remove-btn"
@@ -65,18 +104,26 @@ function Cart() {
                 </div>
               </Link>
               <div className="cart-price">
-                <strong>{`$${item.price}`}</strong>
+                <strong>{`${selectedSymbol}${calculatePrice(
+                  item.price
+                )}`}</strong>
               </div>
               <div className="brand-category">
                 <div className="cart-brand">{item.brand}</div>
                 <div className="cart-category">{item.category}</div>
               </div>
               <div className="quantity">
-                <button className="decrease" onClick={decreaseHandle}>
+                <button
+                  className="decrease"
+                  onClick={() => decreaseHandle(item.id)}
+                >
                   -
                 </button>
-                <p className="counter">{quantity}</p>
-                <button className="increase" onClick={increaseHandle}>
+                <p className="counter">{item.cartQuantity}</p>
+                <button
+                  className="increase"
+                  onClick={() => increaseHandle(item.id)}
+                >
                   +
                 </button>
               </div>
@@ -84,7 +131,7 @@ function Cart() {
           </div>
         ))}
         <div className="total">
-          <strong>Total:</strong>
+          <strong>Total: {`${selectedSymbol}${calculateTotal()}`}</strong>
         </div>
       </div>
       <div className="btns-container">
@@ -92,7 +139,9 @@ function Cart() {
           <Link href="/" className="link">
             <button className="continue-shopping">Continue Shopping</button>
           </Link>
-          <button className="place-order">Place Order</button>
+          <button className="place-order" onClick={placeOrderFunction}>
+            Place Order
+          </button>
         </div>
         <div className="sign-in-notice">To place an order, Sign in.</div>
       </div>
